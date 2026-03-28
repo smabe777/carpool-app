@@ -1,0 +1,9 @@
+
+1. J'ai déjà un compte sur https://cloud.mongodb.com
+avec la connection string :
+mongodb+srv://rodriguelima_db_user:pmOdAfd6JuOLlft9@cluster0.edcskbz.mongodb.net/
+2. J'ai un compte GitHub https://github.com/smabe777/ dans lequel je veux créer tous mes projets
+3. J'ai un compte Netlify https://app.netlify.com/teams/smabe777/projects
+
+Peux-tu utiliser ces éléments pour la création d'un nouvelle application Carpool
+
