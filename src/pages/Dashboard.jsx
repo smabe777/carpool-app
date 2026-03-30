@@ -474,7 +474,10 @@ export default function Dashboard() {
 
               {(() => {
                 const filtered = allRides.filter(r => r.startingPlace === selectedPlace)
-                const anyAvailable = filtered.some(r => r.availableSeats > 0)
+                const withSeats = filtered.filter(r => r.availableSeats > 0)
+                const display = showFullList ? filtered : withSeats
+                const fullCount = filtered.length - withSeats.length
+
                 if (filtered.length === 0) return (
                   <div className="card text-center py-14">
                     <Car size={32} className="mx-auto mb-3 text-slate-300" />
@@ -482,87 +485,72 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-400">Check back soon — drivers are still signing up.</p>
                   </div>
                 )
-                if (!anyAvailable && !showFullList) return (
+                if (withSeats.length === 0 && !showFullList) return (
                   <div className="card text-center py-14">
                     <Car size={32} className="mx-auto mb-3 text-red-300" />
-                    <p className="font-medium text-slate-600 mb-1">All {filtered.length} car{filtered.length !== 1 ? 's' : ''} from {selectedPlace} {filtered.length !== 1 ? 'are' : 'is'} full</p>
+                    <p className="font-medium text-slate-600 mb-1">All cars from {selectedPlace} are full</p>
                     <p className="text-sm text-slate-400 mb-4">No seats available at the moment. Check back later.</p>
-                    <button
-                      onClick={() => setShowFullList(true)}
-                      className="text-sm text-brand-600 font-semibold hover:underline"
-                    >
-                      See cars composition
+                    <button onClick={() => setShowFullList(true)} className="text-sm text-brand-600 font-semibold hover:underline">
+                      See all {filtered.length} car{filtered.length !== 1 ? 's' : ''} and their occupancy
                     </button>
                   </div>
                 )
                 return (
                   <div className="space-y-3">
-                  {!anyAvailable && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4">
-                      <AlertTriangle size={18} className="flex-shrink-0 mt-0.5 text-amber-500" />
-                      <div>
-                        <p className="font-semibold text-sm">All cars are currently full</p>
-                        <p className="text-sm mt-0.5">No seats available from {selectedPlace} at the moment. Check back later.</p>
-                      </div>
+                    <div className="card p-0 overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-slate-50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                            <th className="text-left px-4 py-3 font-semibold">Driver</th>
+                            <th className="text-center px-4 py-3 font-semibold">Seats</th>
+                            <th className="px-4 py-3 w-20" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {display.map((ride) => {
+                            const filled = ride.seats - ride.availableSeats
+                            const isFull = ride.availableSeats === 0
+                            return (
+                              <tr key={ride._id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-brand-gradient flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                      {ride.driver.name[0].toUpperCase()}
+                                    </div>
+                                    <span className="font-medium text-slate-900">{ride.driver.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <div className="inline-flex flex-col items-center gap-1">
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isFull ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                                      {filled}/{ride.seats}
+                                    </span>
+                                    <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all ${isFull ? 'bg-red-400' : 'bg-emerald-400'}`}
+                                        style={{ width: `${(filled / ride.seats) * 100}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  {!isFull && (
+                                    <button onClick={() => handleJoin(ride._id)} className="btn-primary text-xs py-1.5 px-3">
+                                      Join
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
-                  <div className="card p-0 overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-slate-50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
-                          <th className="text-left px-4 py-3 font-semibold">Driver</th>
-                          <th className="text-center px-4 py-3 font-semibold">Seats</th>
-                          <th className="px-4 py-3 w-20" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtered.map((ride) => {
-                          const filled = ride.seats - ride.availableSeats
-                          const isFull = ride.availableSeats === 0
-                          return (
-                            <tr
-                              key={ride._id}
-                              className={`border-b border-slate-50 last:border-0 transition-colors ${isFull ? 'bg-slate-50/50' : 'hover:bg-slate-50'}`}
-                            >
-                              <td className="px-4 py-2.5">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-brand-gradient flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                    {ride.driver.name[0].toUpperCase()}
-                                  </div>
-                                  <span className="font-medium text-slate-900">{ride.driver.name}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                <div className="inline-flex flex-col items-center gap-1">
-                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                    isFull ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'
-                                  }`}>
-                                    {filled}/{ride.seats}
-                                  </span>
-                                  <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${isFull ? 'bg-red-400' : 'bg-emerald-400'}`}
-                                      style={{ width: `${(filled / ride.seats) * 100}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-right">
-                                {!isFull && (
-                                  <button
-                                    onClick={() => handleJoin(ride._id)}
-                                    className="btn-primary text-xs py-1.5 px-3"
-                                  >
-                                    Join
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                    {!showFullList && fullCount > 0 && (
+                      <button onClick={() => setShowFullList(true)} className="text-sm text-slate-400 hover:text-brand-600 font-medium transition-colors">
+                        + Show {fullCount} full car{fullCount !== 1 ? 's' : ''}
+                      </button>
+                    )}
                   </div>
                 )
               })()}
