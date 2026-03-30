@@ -1,50 +1,38 @@
 import { Link } from 'react-router-dom'
-import SearchForm from '../components/SearchForm'
+import { motion } from 'framer-motion'
+import { Car } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-700 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Travel together, spend less
-          </h1>
-          <p className="text-xl text-primary-100 mb-10">
-            Find or offer a carpool ride in just a few clicks
-          </p>
-          <SearchForm />
+    <div className="min-h-screen flex items-center justify-center bg-hero-gradient px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center max-w-sm w-full"
+      >
+        <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Car size={32} className="text-white" />
         </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Why CarpoolApp?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: '💰', title: 'Save money', desc: 'Share travel costs and reduce your transportation expenses.' },
-              { icon: '🌱', title: 'Eco-friendly', desc: "Fewer cars on the road means less CO₂. Let's act together." },
-              { icon: '👥', title: 'Social', desc: 'Meet new people and enjoy the journey in good company.' },
-            ].map(f => (
-              <div key={f.title} className="card text-center">
-                <div className="text-4xl mb-4">{f.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{f.title}</h3>
-                <p className="text-gray-600">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+        <h1 className="text-5xl font-black text-white mb-3">VibeCarpool</h1>
+        <p className="text-white/60 text-lg mb-10">
+          Coordinate your carpool rides, simply.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            to="/login"
+            className="bg-white text-brand-700 font-bold px-8 py-3 rounded-2xl hover:shadow-glow transition-all duration-200 hover:scale-105"
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/register"
+            className="bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-8 py-3 rounded-2xl hover:bg-white/20 transition-all duration-200"
+          >
+            Sign up
+          </Link>
         </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-primary-50 py-16 px-4 text-center">
-        <h2 className="text-3xl font-bold mb-4">Do you have a car?</h2>
-        <p className="text-gray-600 mb-8 text-lg">Offer a ride and offset your travel costs.</p>
-        <Link to="/create" className="btn-primary py-3 px-8 text-base">
-          Offer a ride
-        </Link>
-      </section>
+      </motion.div>
     </div>
   )
 }

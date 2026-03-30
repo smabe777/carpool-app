@@ -2,9 +2,10 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
-import authRoutes from './routes/auth.js'
-import rideRoutes from './routes/rides.js'
-import bookingRoutes from './routes/bookings.js'
+import { router as authRoutes } from './routes/auth.js'
+import { router as rideRoutes } from './routes/rides.js'
+import { router as bookingRoutes } from './routes/bookings.js'
+import { router as adminRoutes } from './routes/admin.js'
 
 dotenv.config()
 
@@ -33,10 +34,12 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/rides', rideRoutes)
 app.use('/api/bookings', bookingRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.use((err, req, res, next) => {
   console.error(err.stack)
   res.status(500).json({ message: 'Erreur serveur' })
 })
 
+export { app }
 export default app

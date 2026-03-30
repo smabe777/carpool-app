@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carpool Simulation Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  h1 { text-align: center; font-size: 1.8rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.25rem; }
+  .subtitle { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 2.5rem; }
+  .badge { display: inline-block; background: #1e40af; color: #bfdbfe; border-radius: 999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+
+  .section { margin-bottom: 3rem; }
+  .section-title {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 1.2rem; font-weight: 700; color: #f1f5f9;
+    margin-bottom: 1.25rem; padding-bottom: 0.6rem;
+    border-bottom: 2px solid;
+  }
+  .section-title.brussel { border-color: #3b82f6; color: #93c5fd; }
+  .section-title.mechelen { border-color: #10b981; color: #6ee7b7; }
+
+  .pin { font-size: 1.4rem; }
+
+  .cars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .car-card {
+    background: #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #334155;
+    transition: transform 0.15s;
+  }
+  .car-card:hover { transform: translateY(-2px); }
+
+  .car-header {
+    padding: 0.75rem 1rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .car-header.brussel { background: #1e3a8a; border-bottom: 1px solid #2563eb; }
+  .car-header.mechelen { background: #064e3b; border-bottom: 1px solid #059669; }
+
+  .car-icon { font-size: 1.6rem; line-height: 1; }
+
+  .driver-info { flex: 1; min-width: 0; }
+  .driver-name { font-weight: 700; font-size: 0.9rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .driver-contact { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .seats-badge {
+    font-size: 0.7rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .seats-full { background: #dc2626; color: #fee2e2; }
+  .seats-partial { background: #d97706; color: #fef3c7; }
+
+  .seat-bar {
+    display: flex; gap: 3px;
+    padding: 0.5rem 1rem 0.4rem;
+    background: #0f172a;
+  }
+  .seat {
+    flex: 1; height: 6px; border-radius: 3px;
+    background: #475569;
+  }
+  .seat.filled.brussel { background: #3b82f6; }
+  .seat.filled.mechelen { background: #10b981; }
+
+  .passengers { padding: 0.5rem 1rem 0.75rem; }
+  .passenger {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 0;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.78rem;
+  }
+  .passenger:last-child { border-bottom: none; }
+  .avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
+    color: #fff;
+  }
+  .avatar.brussel { background: #2563eb; }
+  .avatar.mechelen { background: #059669; }
+  .p-name { color: #cbd5e1; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-phone { color: #64748b; font-size: 0.7rem; white-space: nowrap; }
+
+  .stats-bar {
+    display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;
+    background: #1e293b; border-radius: 12px; padding: 1rem 2rem;
+    margin-bottom: 2.5rem; border: 1px solid #334155;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 2rem; font-weight: 800; color: #f8fafc; }
+  .stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .legend {
+    display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;
+    margin-bottom: 2rem; font-size: 0.8rem; color: #94a3b8;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h1>🚗 Carpool Simulation Report</h1>
+<p class="subtitle">Password for all accounts: <strong>Pass1234</strong> &nbsp;·&nbsp; Generated 2026-03-29</p>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">30</div><div class="stat-label">Drivers</div></div>
+  <div class="stat"><div class="stat-num">60</div><div class="stat-label">Passengers</div></div>
+  <div class="stat"><div class="stat-num">60</div><div class="stat-label">Seats offered</div></div>
+  <div class="stat"><div class="stat-num">60</div><div class="stat-label">Seats filled</div></div>
+  <div class="stat"><div class="stat-num" style="color:#4ade80">0</div><div class="stat-label">Stranded</div></div>
+</div>
+
+<div class="legend">
+  <span class="legend-item"><span class="dot" style="background:#3b82f6"></span> Brussel Central (15 cars)</span>
+  <span class="legend-item"><span class="dot" style="background:#10b981"></span> Mechelen Station (15 cars)</span>
+</div>
+
+<!-- BRUSSEL CENTRAL -->
+<div class="section">
+  <div class="section-title brussel">
+    <span class="pin">📍</span> Brussel Central
+    <span class="badge">15 cars · 30 seats</span>
+  </div>
+  <div class="cars-grid">
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Sebastian Chevalier</div>
+          <div class="driver-contact">sebastian.chevalierd2@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">RN</div><div class="p-name">Riley Noel</div><div class="p-phone">+32470000108</div></div>
+        <div class="passenger"><div class="avatar brussel">DL</div><div class="p-name">David Laurent</div><div class="p-phone">+32470000142</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Anthony Michel</div>
+          <div class="driver-contact">anthony.micheld4@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">ER</div><div class="p-name">Evelyn Robert</div><div class="p-phone">+32470000105</div></div>
+        <div class="passenger"><div class="avatar brussel">AB</div><div class="p-name">Aaron Bernard</div><div class="p-phone">+32470000109</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Gabriel Rousseau</div>
+          <div class="driver-contact">gabriel.rousseaud6@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">LR</div><div class="p-name">Logan Rousseau</div><div class="p-phone">+32470000116</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Mia Dumont</div>
+          <div class="driver-contact">mia.dumontd8@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">AL</div><div class="p-name">Angel Laurent</div><div class="p-phone">+32470000144</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Layla Martin</div>
+          <div class="driver-contact">layla.martind10@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">EB</div><div class="p-name">Evelyn Bonnet</div><div class="p-phone">+32470000124</div></div>
+        <div class="passenger"><div class="avatar brussel">MF</div><div class="p-name">Mila Fontaine</div><div class="p-phone">+32470000130</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Isaac Picard</div>
+          <div class="driver-contact">isaac.picardd12@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">NP</div><div class="p-name">Nicholas Petit</div><div class="p-phone">+32470000123</div></div>
+        <div class="passenger"><div class="avatar brussel">MM</div><div class="p-name">Matthew Moreau</div><div class="p-phone">+32470000140</div></div>
+        <div class="passenger"><div class="avatar brussel">LM</div><div class="p-name">Logan Michel</div><div class="p-phone">+32470000141</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Ethan Thomas</div>
+          <div class="driver-contact">ethan.thomasd14@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">JG</div><div class="p-name">Jackson Girard</div><div class="p-phone">+32470000119</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Audrey Picard</div>
+          <div class="driver-contact">audrey.picardd16@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">HN</div><div class="p-name">Hazel Noel</div><div class="p-phone">+32470000104</div></div>
+        <div class="passenger"><div class="avatar brussel">ZD</div><div class="p-name">Zoey Dubois</div><div class="p-phone">+32470000107</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Amelia Marchand</div>
+          <div class="driver-contact">amelia.marchandd18@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">AP</div><div class="p-name">Abigail Picard</div><div class="p-phone">+32470000110</div></div>
+        <div class="passenger"><div class="avatar brussel">JR</div><div class="p-name">James Richard</div><div class="p-phone">+32470000113</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Harper Dumont</div>
+          <div class="driver-contact">harper.dumontd20@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">ML</div><div class="p-name">Matthew Leroy</div><div class="p-phone">+32470000114</div></div>
+        <div class="passenger"><div class="avatar brussel">SS</div><div class="p-name">Samuel Simon</div><div class="p-phone">+32470000127</div></div>
+        <div class="passenger"><div class="avatar brussel">MT</div><div class="p-name">Mila Thomas</div><div class="p-phone">+32470000151</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Julian Fournier</div>
+          <div class="driver-contact">julian.fournierd22@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">AD</div><div class="p-name">Alexander David</div><div class="p-phone">+32470000101</div></div>
+        <div class="passenger"><div class="avatar brussel">DD</div><div class="p-name">David David</div><div class="p-phone">+32470000102</div></div>
+        <div class="passenger"><div class="avatar brussel">JC</div><div class="p-name">James Chevalier</div><div class="p-phone">+32470000138</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Audrey Dupont</div>
+          <div class="driver-contact">audrey.dupontd24@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">EM</div><div class="p-name">Ethan Morel</div><div class="p-phone">+32470000131</div></div>
+        <div class="passenger"><div class="avatar brussel">CL</div><div class="p-name">Caleb Leroy</div><div class="p-phone">+32470000156</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Wyatt Leroy</div>
+          <div class="driver-contact">wyatt.leroyd26@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">AG</div><div class="p-name">Aurora Garcia</div><div class="p-phone">+32470000145</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Violet Lambert</div>
+          <div class="driver-contact">violet.lambertd28@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">LL</div><div class="p-name">Luke Laurent</div><div class="p-phone">+32470000129</div></div>
+        <div class="passenger"><div class="avatar brussel">JM</div><div class="p-name">Julian Marchand</div><div class="p-phone">+32470000137</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header brussel">
+        <div class="car-icon">🚙</div>
+        <div class="driver-info">
+          <div class="driver-name">Addison Bonnet</div>
+          <div class="driver-contact">addison.bonnetd30@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+        <div class="seat filled brussel"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar brussel">TM</div><div class="p-name">Thomas Moreau</div><div class="p-phone">+32470000120</div></div>
+        <div class="passenger"><div class="avatar brussel">SL</div><div class="p-name">Sebastian Lefebvre</div><div class="p-phone">+32470000146</div></div>
+        <div class="passenger"><div class="avatar brussel">LD</div><div class="p-name">Layla Dumont</div><div class="p-phone">+32470000147</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MECHELEN STATION -->
+<div class="section">
+  <div class="section-title mechelen">
+    <span class="pin">📍</span> Mechelen Station
+    <span class="badge" style="background:#065f46;color:#a7f3d0">15 cars · 30 seats</span>
+  </div>
+  <div class="cars-grid">
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Emma Picard</div>
+          <div class="driver-contact">emma.picardd1@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">GD</div><div class="p-name">Gabriel Dumont</div><div class="p-phone">+32470000106</div></div>
+        <div class="passenger"><div class="avatar mechelen">TL</div><div class="p-name">Thomas Laurent</div><div class="p-phone">+32470000126</div></div>
+        <div class="passenger"><div class="avatar mechelen">SM</div><div class="p-name">Samuel Martin</div><div class="p-phone">+32470000136</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Luke Martin</div>
+          <div class="driver-contact">luke.martind3@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">LD</div><div class="p-name">Layla Dupont</div><div class="p-phone">+32470000111</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Nicholas Dubois</div>
+          <div class="driver-contact">nicholas.duboisd5@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">CM</div><div class="p-name">Carter Michel</div><div class="p-phone">+32470000122</div></div>
+        <div class="passenger"><div class="avatar mechelen">IF</div><div class="p-name">Isabella Fontaine</div><div class="p-phone">+32470000148</div></div>
+        <div class="passenger"><div class="avatar mechelen">DD</div><div class="p-name">David Dubois</div><div class="p-phone">+32470000152</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Evelyn Bernard</div>
+          <div class="driver-contact">evelyn.bernardd7@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">IB</div><div class="p-name">Isaac Bonnet</div><div class="p-phone">+32470000117</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Nicholas Leroy</div>
+          <div class="driver-contact">nicholas.leroyd9@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">TP</div><div class="p-name">Theodore Petit</div><div class="p-phone">+32470000149</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Mia Lambert</div>
+          <div class="driver-contact">mia.lambertd11@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">LR</div><div class="p-name">Lucas Robert</div><div class="p-phone">+32470000103</div></div>
+        <div class="passenger"><div class="avatar mechelen">GM</div><div class="p-name">Grace Martin</div><div class="p-phone">+32470000115</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Nicholas David</div>
+          <div class="driver-contact">nicholas.davidd13@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">IF</div><div class="p-name">Isaiah Fournier</div><div class="p-phone">+32470000133</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Daniel Martin</div>
+          <div class="driver-contact">daniel.martind15@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">NN</div><div class="p-name">Nicholas Noel</div><div class="p-phone">+32470000139</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Jackson Garcia</div>
+          <div class="driver-contact">jackson.garciad17@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">MT</div><div class="p-name">Matthew Thomas</div><div class="p-phone">+32470000118</div></div>
+        <div class="passenger"><div class="avatar mechelen">AS</div><div class="p-name">Adam Simon</div><div class="p-phone">+32470000150</div></div>
+        <div class="passenger"><div class="avatar mechelen">OM</div><div class="p-name">Olivia Martin</div><div class="p-phone">+32470000154</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Matthew Dupont</div>
+          <div class="driver-contact">matthew.dupontd19@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">1/1</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">AB</div><div class="p-name">Adam Bertrand</div><div class="p-phone">+32470000112</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Victoria Noel</div>
+          <div class="driver-contact">victoria.noeld21@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">JL</div><div class="p-name">James Leroy</div><div class="p-phone">+32470000121</div></div>
+        <div class="passenger"><div class="avatar mechelen">AF</div><div class="p-name">Audrey Fontaine</div><div class="p-phone">+32470000125</div></div>
+        <div class="passenger"><div class="avatar mechelen">GF</div><div class="p-name">Grace Fontaine</div><div class="p-phone">+32470000132</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Ethan Martin</div>
+          <div class="driver-contact">ethan.martind23@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">SD</div><div class="p-name">Skylar Dumont</div><div class="p-phone">+32470000155</div></div>
+        <div class="passenger"><div class="avatar mechelen">WM</div><div class="p-name">Wyatt Moreau</div><div class="p-phone">+32470000157</div></div>
+        <div class="passenger"><div class="avatar mechelen">BF</div><div class="p-name">Benjamin Fontaine</div><div class="p-phone">+32470000160</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Noah Thomas</div>
+          <div class="driver-contact">noah.thomasd25@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">AL</div><div class="p-name">Aaron Laurent</div><div class="p-phone">+32470000143</div></div>
+        <div class="passenger"><div class="avatar mechelen">MG</div><div class="p-name">Mateo Girard</div><div class="p-phone">+32470000158</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Samuel Dupont</div>
+          <div class="driver-contact">samuel.dupontd27@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">3/3</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">EM</div><div class="p-name">Emma Michel</div><div class="p-phone">+32470000135</div></div>
+        <div class="passenger"><div class="avatar mechelen">RM</div><div class="p-name">Riley Morel</div><div class="p-phone">+32470000153</div></div>
+        <div class="passenger"><div class="avatar mechelen">ED</div><div class="p-name">Elizabeth Dubois</div><div class="p-phone">+32470000159</div></div>
+      </div>
+    </div>
+
+    <div class="car-card">
+      <div class="car-header mechelen">
+        <div class="car-icon">🚗</div>
+        <div class="driver-info">
+          <div class="driver-name">Wyatt Lefebvre</div>
+          <div class="driver-contact">wyatt.lefebvred29@testcarpool.be</div>
+        </div>
+        <span class="seats-badge seats-full">2/2</span>
+      </div>
+      <div class="seat-bar">
+        <div class="seat filled mechelen"></div>
+        <div class="seat filled mechelen"></div>
+      </div>
+      <div class="passengers">
+        <div class="passenger"><div class="avatar mechelen">ZR</div><div class="p-name">Zoey Robert</div><div class="p-phone">+32470000128</div></div>
+        <div class="passenger"><div class="avatar mechelen">ZM</div><div class="p-name">Zoey Michel</div><div class="p-phone">+32470000134</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

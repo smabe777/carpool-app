@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { enUS } from 'date-fns/locale'
+import { ChevronRight, Plus } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../services/api'
+
+const statusConfig = {
+  confirmed: { label: 'Confirmed', cls: 'bg-green-100 text-green-700' },
+  pending: { label: 'Pending', cls: 'bg-amber-100 text-amber-700' },
+  cancelled: { label: 'Cancelled', cls: 'bg-red-100 text-red-500' },
+}
 
 export default function Bookings() {
   const [bookings, setBookings] = useState([])
@@ -11,100 +20,112 @@ export default function Bookings() {
   const [tab, setTab] = useState('bookings')
 
   useEffect(() => {
-    Promise.all([
-      api.get('/bookings'),
-      api.get('/rides/my')
-    ]).then(([b, r]) => {
-      setBookings(b.data)
-      setMyRides(r.data)
-    }).finally(() => setLoading(false))
+    Promise.all([api.get('/bookings'), api.get('/rides/my')])
+      .then(([b, r]) => { setBookings(b.data); setMyRides(r.data) })
+      .finally(() => setLoading(false))
   }, [])
 
-  const handleCancelBooking = async (id) => {
+  const handleCancel = async (id) => {
     try {
       await api.put(`/bookings/${id}`, { status: 'cancelled' })
       setBookings(prev => prev.filter(b => b._id !== id))
-    } catch {}
+      toast.success('Booking cancelled')
+    } catch {
+      toast.error('Failed to cancel booking')
+    }
   }
 
   if (loading) return (
-    <div className="flex justify-center py-20">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+    <div className="pt-24 flex justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-500"></div>
     </div>
   )
 
-  const statusColors = {
-    confirmed: 'bg-green-100 text-green-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    cancelled: 'bg-red-100 text-red-700',
-  }
-  const statusLabels = { confirmed: 'Confirmed', pending: 'Pending', cancelled: 'Cancelled' }
+  const tabs = [
+    { key: 'bookings', label: 'My bookings', count: bookings.length },
+    { key: 'rides', label: 'My offered rides', count: myRides.length },
+  ]
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">My trips</h1>
+    <div className="pt-24 pb-16 min-h-screen">
+      <div className="max-w-3xl mx-auto px-4">
+        <h1 className="text-3xl font-black text-slate-900 mb-8">My trips</h1>
 
-      <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
-        <button onClick={() => setTab('bookings')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'bookings' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
-          My bookings ({bookings.length})
-        </button>
-        <button onClick={() => setTab('rides')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'rides' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
-          My offered rides ({myRides.length})
-        </button>
-      </div>
+        {/* Tabs */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-8 w-fit">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === t.key ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              {t.label}
+              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${tab === t.key ? 'bg-brand-100 text-brand-600' : 'bg-slate-200 text-slate-500'}`}>
+                {t.count}
+              </span>
+            </button>
+          ))}
+        </div>
 
-      {tab === 'bookings' && (
-        <div className="space-y-4">
-          {bookings.length === 0 ? (
-            <div className="card text-center py-10 text-gray-500">No bookings yet.</div>
-          ) : bookings.map(b => (
-            <div key={b._id} className="card">
-              <div className="flex justify-between items-start">
-                <div>
-                  <Link to={`/rides/${b.ride?._id}`} className="font-bold text-lg hover:text-primary-600">
-                    {b.ride?.from} → {b.ride?.to}
-                  </Link>
-                  <p className="text-gray-500 text-sm">
-                    {b.ride?.date && format(new Date(b.ride.date), 'dd MMM yyyy', { locale: enUS })} · {b.ride?.departureTime}
-                  </p>
-                  <p className="text-gray-500 text-sm">{b.seats} seat{b.seats !== 1 ? 's' : ''} · {b.seats * b.ride?.price}€</p>
-                </div>
-                <div className="flex flex-col items-end space-y-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[b.status]}`}>
-                    {statusLabels[b.status]}
-                  </span>
-                  {b.status !== 'cancelled' && (
-                    <button onClick={() => handleCancelBooking(b._id)} className="text-xs text-red-500 hover:underline">
-                      Cancel
-                    </button>
-                  )}
-                </div>
+        {tab === 'bookings' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            {bookings.length === 0 ? (
+              <div className="card text-center py-16">
+                <div className="text-4xl mb-4">🎫</div>
+                <h3 className="font-bold text-slate-900 mb-1">No bookings yet</h3>
+                <p className="text-slate-500 text-sm mb-4">Find a ride and book your first trip!</p>
+                <Link to="/rides" className="btn-primary inline-flex">Find a ride</Link>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ) : bookings.map((b, i) => (
+              <motion.div key={b._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card hover:shadow-card-hover transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <Link to={`/rides/${b.ride?._id}`} className="font-bold text-slate-900 hover:text-brand-600 flex items-center gap-1">
+                      {b.ride?.from} <ChevronRight size={14} /> {b.ride?.to}
+                    </Link>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      {b.ride?.date && format(new Date(b.ride.date), 'dd MMM yyyy', { locale: enUS })} · {b.ride?.departureTime} · {b.seats} seat{b.seats !== 1 ? 's' : ''} · <span className="font-semibold text-brand-600">{b.seats * b.ride?.price}€</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span className={`badge ${statusConfig[b.status]?.cls}`}>{statusConfig[b.status]?.label}</span>
+                    {b.status !== 'cancelled' && (
+                      <button onClick={() => handleCancel(b._id)} className="text-xs text-red-400 hover:text-red-600 font-medium">Cancel</button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
-      {tab === 'rides' && (
-        <div className="space-y-4">
-          {myRides.length === 0 ? (
-            <div className="card text-center py-10 text-gray-500">
-              You haven't offered any rides yet.
-              <Link to="/create" className="block mt-3 text-primary-600 font-medium">Offer a ride</Link>
-            </div>
-          ) : myRides.map(r => (
-            <div key={r._id} className="card">
-              <Link to={`/rides/${r._id}`} className="font-bold text-lg hover:text-primary-600">
-                {r.from} → {r.to}
-              </Link>
-              <p className="text-gray-500 text-sm">
-                {format(new Date(r.date), 'dd MMM yyyy', { locale: enUS })} · {r.departureTime}
-              </p>
-              <p className="text-gray-500 text-sm">{r.availableSeats}/{r.seats} seats · {r.price}€/person</p>
-            </div>
-          ))}
-        </div>
-      )}
+        {tab === 'rides' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            {myRides.length === 0 ? (
+              <div className="card text-center py-16">
+                <div className="text-4xl mb-4">🚗</div>
+                <h3 className="font-bold text-slate-900 mb-1">No rides offered yet</h3>
+                <p className="text-slate-500 text-sm mb-4">Share your journey and save on costs.</p>
+                <Link to="/create" className="btn-primary inline-flex"><Plus size={15} /> Offer a ride</Link>
+              </div>
+            ) : myRides.map((r, i) => (
+              <motion.div key={r._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card hover:shadow-card-hover transition-all">
+                <Link to={`/rides/${r._id}`} className="flex items-center justify-between group">
+                  <div>
+                    <div className="font-bold text-slate-900 group-hover:text-brand-600 flex items-center gap-1">
+                      {r.from} <ChevronRight size={14} /> {r.to}
+                    </div>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      {format(new Date(r.date), 'dd MMM yyyy', { locale: enUS })} · {r.departureTime} · {r.availableSeats}/{r.seats} seats · <span className="font-semibold text-brand-600">{r.price}€/person</span>
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:text-brand-500 transition-colors" />
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </div>
     </div>
   )
 }

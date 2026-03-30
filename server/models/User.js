@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, minlength: 6 },
   phone: { type: String, required: true },
+  isAdmin: { type: Boolean, default: false },
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now },
 })
 
@@ -25,4 +28,6 @@ userSchema.methods.toJSON = function () {
   return obj
 }
 
-export default mongoose.model('User', userSchema)
+const _model = mongoose.model('User', userSchema)
+export { _model as User }
+export default _model

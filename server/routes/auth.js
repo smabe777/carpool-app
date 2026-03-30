@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
-import auth from '../middleware/auth.js'
+import crypto from 'crypto'
+import { User } from '../models/User.js'
+import { auth } from '../middleware/auth.js'
+import { sendPasswordResetEmail } from '../services/email.js'
 
 const router = Router()
 
@@ -48,4 +50,39 @@ router.put('/profile', auth, async (req, res) => {
   }
 })
 
-export default router
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email?.toLowerCase() })
+    // Always respond OK to avoid email enumeration
+    if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' })
+    const token = crypto.randomBytes(32).toString('hex')
+    user.resetToken = token
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    await user.save({ validateBeforeSave: false })
+    const resetUrl = `https://vibe-carpool.netlify.app/reset-password?token=${token}`
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl })
+    res.json({ message: 'If that email exists, a reset link has been sent.' })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: new Date() },
+    })
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset link.' })
+    user.password = password
+    user.resetToken = undefined
+    user.resetTokenExpiry = undefined
+    await user.save()
+    res.json({ message: 'Password updated successfully.' })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+export { router }

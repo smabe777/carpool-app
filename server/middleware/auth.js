@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
+import { User } from '../models/User.js'
 
-export default async function authMiddleware(req, res, next) {
+export async function auth(req, res, next) {
   const header = req.headers.authorization
   if (!header?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Not authenticated' })
